@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Super Chat</title>
+<style>
+body{
+  margin:0;
+  background:#444;
+  font-family:Arial;
+}
+
+.screen{
+  display:none;
+  height:100vh;
+}
+
+.active{
+  display:flex;
+}
+
+#login{
+  justify-content:center;
+  align-items:center;
+  background:#222;
+  color:white;
+  flex-direction:column;
+}
+
+#login input, #login button{
+  padding:10px;
+  margin:5px;
+  width:200px;
+}
+
+.app{
+  display:flex;
+  height:100vh;
+}
+
+.sidebar{
+  width:200px;
+  background:#111;
+  color:white;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+}
+
+.userBox{
+  text-align:center;
+  border-bottom:1px solid #333;
+  padding-bottom:10px;
+}
+
+.userBox img{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+}
+
+.list{
+  flex:1;
+  overflow-y:auto;
+  margin-bottom:10px;
+}
+
+.item{
+  background:#222;
+  padding:6px;
+  margin:3px 0;
+  cursor:pointer;
+}
+
+.item:hover{background:#333}
+
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  background:linear-gradient(#f1f1f1,#ccc);
+}
+
+.header{
+  background:linear-gradient(#00a2ff,#0066cc);
+  color:white;
+  padding:10px;
+}
+
+.chat{
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+}
+
+.msg{
+  padding:8px;
+  margin:5px 0;
+  border-radius:6px;
+  max-width:70%;
+  background:white;
+}
+
+.you{
+  background:#111;
+  color:white;
+  margin-left:auto;
+}
+
+.other{
+  background:#00ff66;
+}
+
+.input{
+  display:flex;
+}
+
+textarea{flex:1; padding:10px; border:none; resize:none}
+button{width:100px; border:none; background:#0071ff; color:white; font-weight:bold}
+
+.adminPanel{
+  background:#222;
+  color:white;
+  padding:10px;
+  display:none;
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login" class="screen active">
+  <h2>SUPER CHAT</h2>
+  <input id="loginName" placeholder="Nick">
+  <input id="loginAvatar" placeholder="Link do avatara">
+  <button onclick="login()">ZALOGUJ / ZAREJESTRUJ</button>
+</div>
+
+<!-- APP -->
+<div id="app" class="screen app">
+
+<div class="sidebar">
+  <div class="userBox">
+    <img id="avatar">
+    <div id="nick"></div>
+    <div id="role"></div>
+  </div>
+
+  <button onclick="addContact()">+ kontakt</button>
+  <div class="list" id="contacts"></div>
+
+  <button onclick="addGroup()">+ grupa</button>
+  <div class="list" id="groups"></div>
+
+  <button onclick="invite()">+ zaproś do grupy</button>
+
+  <button onclick="logout()">WYLOGUJ</button>
+</div>
+
+<div class="main">
+  <div class="header" id="currentChat">Wybierz czat</div>
+  <div class="chat" id="chat"></div>
+
+  <div class="input">
+    <textarea id="msg"></textarea>
+    <button onclick="send()">SUBMIT</button>
+  </div>
+
+  <div class="adminPanel" id="admin">
+    <h4>ADMIN PANEL</h4>
+    <button onclick="makeAdmin()">Nadaj wybranej osobie admina</button>
+  </div>
+
+</div>
+</div>
+
+<audio id="ping" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<script>
+let db = JSON.parse(localStorage.getItem("SUPERCHAT")) || {
+  users:{},
+  chats:{},
+  contacts:{},
+  groups:{},
+  invites:[]
+};
+
+let currentUser = null;
+let currentChat = null;
+
+function save(){
+  localStorage.setItem("SUPERCHAT",JSON.stringify(db));
+}
+
+// -------- LOGIN SYSTEM ----------
+function login(){
+  let name = loginName.value.trim();
+  let avatar = loginAvatar.value || "https://i.imgur.com/7k12EPD.png";
+
+  if(!name) return alert("Podaj nick");
+
+  if(!db.users[name]){
+    db.users[name] = {avatar, role:Object.keys(db.users).length==0?"admin":"user"};
+    db.contacts[name]=[];
+    db.groups[name]=[];
+  }
+
+  currentUser = name;
+
+  avatar && (document.getElementById("avatar").src = db.users[name].avatar);
+  nick.innerText = name;
+  role.innerText = db.users[name].role;
+
+  if(db.users[name].role === "admin"){
+    document.getElementById("admin").style.display="block";
+  }
+
+  renderLists();
+  login.classList.remove("active");
+  app.classList.add("active");
+
+  save();
+}
+
+// -------- LISTS ----------
+function renderLists(){
+  contacts.innerHTML="";
+  groups.innerHTML="";
+
+  db.contacts[currentUser].forEach(u=>{
+    let d=document.createElement("div");
+    d.className="item";
+    d.innerText=u;
+    d.onclick=()=>openChat("u_"+u);
+    contacts.appendChild(d);
+  })
+
+  db.groups[currentUser].forEach(g=>{
+    let d=document.createElement("div");
+    d.className="item";
+    d.innerText=g;
+    d.onclick=()=>openChat("g_"+g);
+    groups.appendChild(d);
+  })
+}
+
+function addContact(){
+  let name = prompt("Dodaj użytkownika:");
+  if(!db.users[name]) return alert("Nie istnieje");
+  if(!db.contacts[currentUser].includes(name)){
+    db.contacts[currentUser].push(name);
+  }
+  save(); renderLists();
+}
+
+function addGroup(){
+  let name = prompt("Nazwa grupy:");
+  if(!db.chats["g_"+name]) db.chats["g_"+name]=[];
+  if(!db.groups[currentUser].includes(name)) db.groups[currentUser].push(name);
+  save(); renderLists();
+}
+
+function invite(){
+  let who = prompt("Kogo zaprosić?");
+  let g = prompt("Do której grupy?");
+  if(!db.users[who] || !db.groups[currentUser].includes(g)) return;
+  db.groups[who].push(g);
+  save(); alert("Zaproszono!");
+}
+
+// -------- CHAT ----------
+function openChat(id){
+  currentChat=id;
+  currentChatHeader.textContent=id.slice(2);
+  draw();
+}
+
+function draw(){
+  const chat=document.getElementById("chat");
+  chat.innerHTML='';
+  let msgs=db.chats[currentChat] || [];
+  msgs.forEach(m=>{
+    let d=document.createElement("div");
+    d.className="msg "+(m.author==currentUser?"you":"other");
+    d.innerHTML=`<b>${m.author}</b><br>${m.text}<br><small>${m.time}</small>`;
+    chat.appendChild(d);
+  })
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function send(){
+  if(!currentChat) return alert("Wybierz czat");
+  let text=msg.value.trim();
+  if(!text) return;
+
+  if(!db.chats[currentChat]) db.chats[currentChat]=[];
+
+  db.chats[currentChat].push({
+    author:currentUser,
+    text,
+    time:new Date().toLocaleTimeString().slice(0,5)
+  });
+
+  msg.value="";
+  save();
+  draw();
+  ping.play();
+  if(Notification.permission==="granted"){
+    new Notification("Nowa wiadomość",{body:text});
+  }
+}
+
+// -------- ADMIN ----------
+function makeAdmin(){
+  let who=prompt("Komu nadać admina?");
+  if(db.users[who]){
+    db.users[who].role="admin";
+    save(); alert("Nadano!");
+  }
+}
+
+function logout(){
+  location.reload();
+}
+
+// PERMISSIONS
+if(Notification.permission!=="granted")Notification.requestPermission();
+</script>
+</body>
+</html>
