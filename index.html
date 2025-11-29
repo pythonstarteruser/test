@@ -177,10 +177,21 @@ button{width:100px; border:none; background:#0071ff; color:white; font-weight:bo
 
 <script>
 let db = JSON.parse(localStorage.getItem("SUPERCHAT")) || {
-  users:{},
-  chats:{},
-  contacts:{},
-  groups:{},
+  users:{
+    "Leo": {
+      avatar: "https://i.imgur.com/7k12EPD.png",
+      role: "user"
+    }
+  },
+  chats:{
+    "g_chill zone": []
+  },
+  contacts:{
+    "Leo": []
+  },
+  groups:{
+    "Leo": ["chill zone"]
+  },
   invites:[]
 };
 
