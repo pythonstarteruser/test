@@ -127,14 +127,25 @@ button{width:100px; border:none; background:#0071ff; color:white; font-weight:bo
 </style>
 </head>
 <body>
-
-<!-- LOGIN -->
-<div id="login" class="screen">
-  <h2>SUPER CHAT</h2>
-  <input id="loginName" placeholder="Nick">
-  <button onclick="login()">ZALOGUJ / ZAREJESTRUJ</button>
+<div id="login" class="login-card screen active">
+  <div class="login-card-inner">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" class="login-logo" />
+    <h2>Super Chat</h2>
+    <input id="loginName" placeholder="Nickname">
+    <input id="loginPassword" type="password" placeholder="Password (optional)">
+    <button onclick="login()">Login / Register</button>
+    <!-- Google OAuth button -->
+    <div id="g_id_onload"
+         data-client_id="YOUR_GOOGLE_CLIENT_ID"
+         data-auto_prompt="false"
+         data-callback="handleCredentialResponse"></div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-shape="pill"
+         data-theme="outline"
+         data-width="250"></div>
+  </div>
 </div>
-
 <!-- APP -->
 <div id="app" class="screen app">
 
