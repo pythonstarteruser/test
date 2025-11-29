@@ -129,10 +129,9 @@ button{width:100px; border:none; background:#0071ff; color:white; font-weight:bo
 <body>
 
 <!-- LOGIN -->
-<div id="login" class="screen active">
+<div id="login" class="screen">
   <h2>SUPER CHAT</h2>
   <input id="loginName" placeholder="Nick">
-  <input id="loginAvatar" placeholder="Link do avatara">
   <button onclick="login()">ZALOGUJ / ZAREJESTRUJ</button>
 </div>
 
@@ -185,7 +184,7 @@ let db = JSON.parse(localStorage.getItem("SUPERCHAT")) || {
   invites:[]
 };
 
-let currentUser = null;
+let currentUser = localStorage.getItem("SUPERCHAT_USER") || null;
 let currentChat = null;
 
 function save(){
@@ -195,9 +194,9 @@ function save(){
 // -------- LOGIN SYSTEM ----------
 function login(){
   let name = loginName.value.trim();
-  let avatar = loginAvatar.value || "https://i.imgur.com/7k12EPD.png";
-
   if(!name) return alert("Podaj nick");
+
+  let avatar = "https://i.imgur.com/7k12EPD.png"; // stały avatar
 
   if(!db.users[name]){
     db.users[name] = {avatar, role:Object.keys(db.users).length==0?"admin":"user"};
@@ -206,6 +205,7 @@ function login(){
   }
 
   currentUser = name;
+  localStorage.setItem("SUPERCHAT_USER", currentUser);
 
   avatar && (document.getElementById("avatar").src = db.users[name].avatar);
   nick.innerText = name;
@@ -220,6 +220,12 @@ function login(){
   app.classList.add("active");
 
   save();
+}
+
+// -------- AUTO LOGIN ----------
+if(currentUser){
+  loginName.value = currentUser;
+  login();
 }
 
 // -------- LISTS ----------
@@ -320,6 +326,7 @@ function makeAdmin(){
 }
 
 function logout(){
+  localStorage.removeItem("SUPERCHAT_USER");
   location.reload();
 }
 
